@@ -1,7 +1,7 @@
 version: 0.1
 auth:
   token:
-    realm: "https://192.168.0.15:5001/auth"
+    realm: "https://$MY_DOMAIN:5001/auth"
     service: "Docker registry"
     issuer: "Acme auth server"
     rootcertbundle: "/certs/domain.crt"

@@ -7,18 +7,25 @@ This docker-compose will quickly set up a Docker Registry with the following.
  - (TODO) golang server for managing users
  - (TODO) react frontend
 
-To run this stack, follow the steps below:
+To run this stack, follow the steps below (TODO have `sed` auto gen config):
 
-### Step 1: Create your certs, replace the domain with your host machine domain
+### Step 1: Create your certs, replace the `MY_DOMAIN` with your host machine domain
 ```
-export MY_DOMAIN=localhost
-
 openssl req \
-  -newkey rsa:4096 -nodes -sha256 -subj '/CN=*.$MY_DOMAIN/' -keyout ./certs/domain.key \
+  -newkey rsa:4096 -nodes -sha256 -subj '/CN=MY_DOMAIN/' -keyout ./certs/domain.key \
   -x509 -days 365 -out ./certs/domain.crt
 ```
 
-### Step 2: Start the stack
+### Step 2: Update the `config.yml` auth realm
+`$MY_DOMAIN` should be replaced with your domain
+
+### Step 3: Copy your created certs to your docker certs.d
+```
+sudo mkdir -p /etc/docker/certs.d/MY_DOMAIN/
+sudo cp ./certs/domain.crt /etc/docker/certs.d/MY_DOMAIN/domain.crt
+```
+
+### Step 4: Start the stack
 ```
 	docker-compose up
 ```
