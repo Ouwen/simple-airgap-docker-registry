@@ -14,8 +14,8 @@ To run this stack, follow the steps below:
 export MY_DOMAIN=localhost
 
 openssl req \
-  -newkey rsa:4096 -nodes -sha256 -subj '/CN=*.$MY_DOMAIN/' -keyout ./domain.key \
-  -x509 -days 365 -out ./domain.crt
+  -newkey rsa:4096 -nodes -sha256 -subj '/CN=*.$MY_DOMAIN/' -keyout ./certs/domain.key \
+  -x509 -days 365 -out ./certs/domain.crt
 ```
 
 ### Step 2: Start the stack
