@@ -1,0 +1,104 @@
+# This config lists all the possible config options.
+#
+# To configure Docker Registry to talk to this server, put the following in the registry config file:
+#
+#  auth:
+#    token:
+#      realm: "https://127.0.0.1:5001/auth"
+#      service: "Docker registry"
+#      issuer: "Acme auth server"
+#      rootcertbundle: "/path/to/server.pem"
+
+server:  # Server settings.
+  # Address to listen on.
+  addr: ":5001"
+
+  # TLS options.
+  #
+  # Use specific certificate and key.
+  certificate: "/certs/domain.crt"
+  key: "/certs/domain.key"
+
+token:  # Settings for the tokens.
+  issuer: "Acme auth server"  # Must match issuer in the Registry config.
+  expiration: 900
+
+# Authentication methods. All are tried, any one returning success is sufficient.
+# At least one must be configured. If you want an unauthenticated public setup,
+# configure static user map with anonymous access.
+
+# Static user map.
+users:
+  # Password is specified as a BCrypt hash. Use `htpasswd -nB password` to generate.
+  "test":
+    password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
+
+sql_auth:
+  connection:
+    # only postgres and mysql drivers are currently supported
+    driver: "postgres"
+    # data_source_name is driver specific
+    data_source_name: $POSTGRES_CONNECTION
+  table: "users"
+  user_column: "username"
+  password_column: "password"
+  labels_column: "labels"
+
+# ACL specifies who can do what. If the match section of an entry matches the
+# request, the set of allowed actions will be applied to the token request
+# and a ticket will be issued only for those of the requested actions that are
+# allowed by the rule.
+#  * It is possible to match on user's name ("account"), subject type ("type")
+#    and name ("name"; for type=repository this is the image name).
+#  * Matches are evaluated as shell file name patterns ("globs") by default,
+#    so "foobar", "f??bar", "f*bar" are all valid. For even more flexibility
+#    match patterns can be evaluated as regexes by enclosing them in //, e.g.
+#    "/(foo|bar)/".
+#  * IP match can be single IP address or a subnet in the "prefix/mask" notation.
+#  * ACL is evaluated in the order it is defined until a match is found.
+#    Rules below the first match are not evaluated, so you'll need to put more
+#    specific rules above more broad ones.
+#  * Empty match clause matches anything, it only makes sense at the end of the
+#    list and can be used as a way of specifying default permissions.
+#  * Empty actions set means "deny everything". Thus, a rule with `actions: []`
+#    is in effect a "deny" rule.
+#  * A special set consisting of a single "*" action means "allow everything".
+#  * If no match is found the default is to deny the request.
+#
+# You can use the following variables from the ticket request in any field:
+#  * ${account} - the account name, currently the same as authenticated user's name.
+#  * ${service} - the service name, specified by auth.token.service in the registry config.
+#  * ${type} - the type of the entity, normally "repository".
+#  * ${name} - the name of the repository (i.e. image), e.g. centos.
+#  * ${labels:<LABEL>} - tests all values in the list of lables:<LABEL> for the user. Refer to the labels doc for details
+acl:
+  - match: {ip: "127.0.0.0/8"}
+    actions: ["*"]
+    comment: "Allow everything from localhost (IPv4)"
+  - match: {ip: "::1"}
+    actions: ["*"]
+    comment: "Allow everything from localhost (IPv6)"
+  - match: {ip: "172.17.0.1"}
+    actions: ["*"]
+    comment: "Allow everything from the local Docker bridge address"
+  - match: {account: "test"}
+    actions: []
+    comment: "Test account is not allowed to do anything"
+  - match: {account: "/.+/", name: "${account}/*"}
+    actions: ["*"]
+    comment: "Logged in users have full access to images that are in their 'namespace'"
+  - match: {account: "/.+/", type: "registry", name: "catalog"}
+    actions: ["*"]
+    comment: "Logged in users can query the catalog."
+  - match: {account: "/.+/"}
+    actions: ["pull"]
+    comment: "Logged in users can pull all images."
+  - match: {account: "", name: "hello-world"}
+    actions: ["pull"]
+    comment: "Anonymous users can pull \"hello-world\"."
+  - match: {name: "${labels:group}/*"}
+    actions: ["push", "pull"]
+    comment: "Users can push to the shared namespace of any group they are in"
+  - match: {name: "${labels:project}/*"}
+    actions: ["push", "pull"]
+    comment: "Users can push to any project they are assigned to"

@@ -1,0 +1,36 @@
+version: 0.1
+auth:
+  token:
+    realm: "https://192.168.0.15:5001/auth"
+    service: "Docker registry"
+    issuer: "Acme auth server"
+    rootcertbundle: "/certs/domain.crt"
+http:
+  addr: :5000
+  tls:
+    certificate: /certs/domain.crt
+    key: /certs/domain.key
+  headers:
+    X-Content-Type-Options: [nosniff]
+log:
+  fields:
+    service: registry
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+    maxthreads: 100
+  cache:
+    blobdescriptor: inmemory
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 168h
+      interval: 24h
+      dryrun: false
+    readonly:
+      enabled: false
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
